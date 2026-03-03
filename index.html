@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benjamin and the Whispering Library</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: #1a1a2e;
+      font-family: 'Georgia', serif;
+      color: #e8e8e8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 700px;
+      width: 100%;
+      padding: 40px 30px;
+      margin: 20px;
+      background: #16213e;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      margin-bottom: 30px;
+      color: #a8b5d1;
+      font-weight: normal;
+      letter-spacing: 0.5px;
+    }
+
+    .story-text {
+      font-size: 1.25rem;
+      line-height: 1.8;
+      margin-bottom: 30px;
+      min-height: 150px;
+    }
+
+    .story-text .word {
+      color: #555;
+      transition: color 0.15s ease;
+    }
+
+    .story-text .word.spoken {
+      color: #e8e8e8;
+    }
+
+    .story-text .word.current {
+      color: #fff;
+    }
+
+    .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 30px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      pointer-events: none;
+    }
+
+    .choices.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .choice-btn {
+      background: #1a1a2e;
+      border: 1px solid #3a4a6b;
+      color: #a8b5d1;
+      padding: 15px 20px;
+      font-size: 1.1rem;
+      font-family: 'Georgia', serif;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+
+    .choice-btn:hover {
+      background: #2a3a5e;
+      border-color: #5a6a8b;
+      color: #e8e8e8;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #2a3a5e;
+    }
+
+    .play-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #3a5a8a;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .play-btn:hover {
+      background: #4a6a9a;
+    }
+
+    .play-btn svg {
+      fill: #e8e8e8;
+      width: 20px;
+      height: 20px;
+    }
+
+    .play-btn.playing svg.play-icon {
+      display: none;
+    }
+
+    .play-btn:not(.playing) svg.pause-icon {
+      display: none;
+    }
+
+    .volume-controls {
+      display: flex;
+      gap: 20px;
+      flex-grow: 1;
+    }
+
+    .volume-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .volume-group label {
+      font-size: 0.75rem;
+      color: #6a7a9a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      width: 50px;
+    }
+
+    .volume-group input[type="range"] {
+      width: 80px;
+      height: 4px;
+      -webkit-appearance: none;
+      background: #2a3a5e;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .volume-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #5a7aaa;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .read-mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .read-mode-toggle label {
+      font-size: 0.75rem;
+      color: #6a7a9a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #2a3a5e;
+      transition: 0.3s;
+      border-radius: 22px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #6a7a9a;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: #3a5a8a;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(18px);
+      background-color: #e8e8e8;
+    }
+
+    .restart-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: 1px solid #3a4a6b;
+      color: #6a7a9a;
+      padding: 8px 15px;
+      font-size: 0.85rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .restart-btn:hover {
+      border-color: #5a6a8b;
+      color: #a8b5d1;
+    }
+
+    .loading {
+      text-align: center;
+      color: #6a7a9a;
+      font-style: italic;
+    }
+
+    .error {
+      color: #cc6666;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <button class="restart-btn" onclick="restartStory()">↺ Restart</button>
+
+  <div class="container">
+    <h1 id="storyTitle">Benjamin and the Whispering Library</h1>
+
+    <div class="story-text" id="storyText">
+      <span class="loading">Loading story...</span>
+    </div>
+
+    <div class="choices" id="choices"></div>
+
+    <div class="controls">
+      <button class="play-btn" id="playBtn" onclick="togglePlay()">
+        <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+
+      <div class="volume-controls">
+        <div class="volume-group">
+          <label>Voice</label>
+          <input type="range" id="volNarration" min="0" max="1" step="0.1" value="1" onchange="updateVolume('narration', this.value)">
+        </div>
+        <div class="volume-group">
+          <label>Music</label>
+          <input type="range" id="volMusic" min="0" max="1" step="0.1" value="0.4" onchange="updateVolume('music', this.value)">
+        </div>
+        <div class="volume-group">
+          <label>SFX</label>
+          <input type="range" id="volSfx" min="0" max="1" step="0.1" value="0.7" onchange="updateVolume('sfx', this.value)">
+        </div>
+      </div>
+
+      <div class="read-mode-toggle">
+        <label>Read</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="readMode" onchange="toggleReadMode()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===========================================
+    // STORY DATA
+    // ===========================================
+    // Timing is loaded from external JSON files generated by aeneas.
+    // Each node references a timing file: timing/<nodeId>.json
+    //
+    // Timing JSON format (output from build-timing.sh + convert-timing.py):
+    // {
+    //   "words": ["The", "old", "library", ...],
+    //   "timing": [[0.0, 0.52], [0.52, 0.84], ...]
+    // }
+
+    const story = {
+      title: "Benjamin and the Whispering Library",
+      startNode: "opening",
+
+      nodes: {
+        "opening": {
+          text: "The old library stood at the end of Crescent Lane, its windows dark except for a single flickering light on the third floor. Benjamin pulled his coat tighter and studied the iron gate. Something was wrong. The lock hung open, swinging gently in the autumn wind.",
+          audio: {
+            narration: "audio/narration/opening.mp3",
+            music: "audio/music/amb_mysterious.mp3",
+            sfx: [
+              { file: "audio/sfx/wind.mp3", at: 0, loop: true, volume: 0.3 },
+              { file: "audio/sfx/gate_creak.mp3", at: 8.5 }
+            ]
+          },
+          choices: [
+            { text: "Push through the gate", goto: "enter_gate" },
+            { text: "Circle around to the back", goto: "back_alley" }
+          ]
+        },
+
+        "enter_gate": {
+          text: "Benjamin pressed his palm against the cold iron and pushed. The gate swung inward without a sound. Strange. These old hinges should have screamed. He stepped onto the overgrown path, dead leaves crunching beneath his boots. The front door was ajar.",
+          audio: {
+            narration: "audio/narration/enter_gate.mp3",
+            music: "audio/music/amb_mysterious.mp3",
+            sfx: [
+              { file: "audio/sfx/footsteps_leaves.mp3", at: 5.2 }
+            ]
+          },
+          choices: [
+            { text: "Enter through the front door", goto: "front_door" },
+            { text: "Peer through the ground floor window", goto: "window_peek" }
+          ]
+        },
+
+        "back_alley": {
+          text: "He turned left, following the crumbling stone wall into the narrow alley. Garbage bins lined one side, long abandoned. Halfway down, he spotted a basement window, its glass shattered. From somewhere inside came the faint sound of pages turning.",
+          audio: {
+            narration: "audio/narration/back_alley.mp3",
+            music: "audio/music/amb_mysterious.mp3",
+            sfx: [
+              { file: "audio/sfx/pages_turning.mp3", at: 9.0, volume: 0.4 }
+            ]
+          },
+          choices: [
+            { text: "Climb through the broken window", goto: "basement" },
+            { text: "Return to the front gate", goto: "enter_gate" }
+          ]
+        },
+
+        "front_door": {
+          text: "The door opened at his touch, revealing a grand foyer thick with dust. A chandelier hung overhead, its crystals catching the moonlight that spilled through a broken skylight. And there, at the foot of the sweeping staircase, lay an open book. Its pages glowed faintly blue.",
+          audio: {
+            narration: "audio/narration/front_door.mp3",
+            music: "audio/music/amb_magic.mp3",
+            sfx: [
+              { file: "audio/sfx/magic_hum.mp3", at: 7.5, loop: true, volume: 0.25 }
+            ]
+          },
+          choices: [
+            { text: "Pick up the glowing book", goto: "ending_book" },
+            { text: "Climb the stairs toward the light", goto: "ending_stairs" }
+          ]
+        },
+
+        "window_peek": {
+          text: "Benjamin cupped his hands against the grimy glass. Inside, rows of bookshelves stretched into darkness. But between them, something moved. A figure in a long coat, carrying a lantern. It stopped. Turned. Looked directly at him.",
+          audio: {
+            narration: "audio/narration/window_peek.mp3",
+            music: "audio/music/amb_tension.mp3",
+            sfx: [
+              { file: "audio/sfx/heartbeat.mp3", at: 6.0, volume: 0.5 }
+            ]
+          },
+          choices: [
+            { text: "Run.", goto: "ending_run" },
+            { text: "Wave.", goto: "ending_wave" }
+          ]
+        },
+
+        "basement": {
+          text: "He lowered himself through the window frame, glass crunching under his palms. The basement smelled of mildew and old paper. Towers of books rose around him like a maze. And somewhere in that maze, the sound of turning pages grew louder.",
+          audio: {
+            narration: "audio/narration/basement.mp3",
+            music: "audio/music/amb_mysterious.mp3",
+            sfx: [
+              { file: "audio/sfx/glass_crunch.mp3", at: 1.5 },
+              { file: "audio/sfx/pages_turning.mp3", at: 8.0, volume: 0.6 }
+            ]
+          },
+          choices: [
+            { text: "Follow the sound", goto: "ending_follow" },
+            { text: "Search for another exit", goto: "ending_escape" }
+          ]
+        },
+
+        // ENDINGS
+
+        "ending_book": {
+          text: "The moment his fingers touched the cover, the pages flew open, filling the room with blue-white light. Words lifted off the paper and swirled around him like a storm. Benjamin felt his feet leave the ground. He was being pulled into the story.",
+          audio: {
+            narration: "audio/narration/ending_book.mp3",
+            music: "audio/music/amb_magic.mp3",
+            sfx: [
+              { file: "audio/sfx/magic_whoosh.mp3", at: 2.0 },
+              { file: "audio/sfx/pages_flutter.mp3", at: 3.5 }
+            ]
+          },
+          isEnding: true,
+          endingText: "The Book Chose Him"
+        },
+
+        "ending_stairs": {
+          text: "Each step creaked beneath him as he climbed toward the flickering light. At the top, a door stood open. Inside, an old woman sat at a desk, surrounded by candles. She looked up and smiled. 'I wondered when you'd find your way here, Benjamin.'",
+          audio: {
+            narration: "audio/narration/ending_stairs.mp3",
+            music: "audio/music/amb_warm.mp3",
+            sfx: [
+              { file: "audio/sfx/stairs_creak.mp3", at: 0.5 }
+            ]
+          },
+          isEnding: true,
+          endingText: "The Librarian Was Waiting"
+        },
+
+        "ending_run": {
+          text: "Benjamin's legs moved before his mind could catch up. He sprinted down Crescent Lane, not looking back. The library's windows watched him go, and just before he turned the corner, he swore he heard laughter. He never walked that street again.",
+          audio: {
+            narration: "audio/narration/ending_run.mp3",
+            music: "audio/music/amb_tension.mp3",
+            sfx: [
+              { file: "audio/sfx/running_footsteps.mp3", at: 1.0 },
+              { file: "audio/sfx/distant_laugh.mp3", at: 7.0, volume: 0.4 }
+            ]
+          },
+          isEnding: true,
+          endingText: "Some Doors Are Best Left Closed"
+        },
+
+        "ending_wave": {
+          text: "He raised his hand. The figure raised its lantern in response. Then it beckoned. Benjamin walked to the front door and found it unlocked. The figure met him in the foyer. 'You're the new apprentice,' it said. 'We've been expecting you.'",
+          audio: {
+            narration: "audio/narration/ending_wave.mp3",
+            music: "audio/music/amb_hopeful.mp3",
+            sfx: []
+          },
+          isEnding: true,
+          endingText: "A New Chapter Begins"
+        },
+
+        "ending_follow": {
+          text: "He crept deeper into the maze of books, following the rhythmic whisper of turning pages. In a clearing at the center, a book lay open on a pedestal, its pages turning by themselves. Each page revealed a face, and Benjamin recognized them all. Everyone who had ever entered this library. And now, his own face appeared.",
+          audio: {
+            narration: "audio/narration/ending_follow.mp3",
+            music: "audio/music/amb_eerie.mp3",
+            sfx: [
+              { file: "audio/sfx/pages_turning.mp3", at: 3.0, loop: true, volume: 0.3 }
+            ]
+          },
+          isEnding: true,
+          endingText: "Written Into The Collection"
+        },
+
+        "ending_escape": {
+          text: "He searched the basement walls until he found a coal chute, rusty but passable. He hauled himself up and tumbled out onto wet grass. Behind him, the library stood silent. He had escaped. But in his pocket, he found a card he didn't remember taking. A library card. With his name already written on it.",
+          audio: {
+            narration: "audio/narration/ending_escape.mp3",
+            music: "audio/music/amb_mysterious.mp3",
+            sfx: [
+              { file: "audio/sfx/metal_scrape.mp3", at: 2.5 }
+            ]
+          },
+          isEnding: true,
+          endingText: "You Can Check Out Any Time You Like..."
+        }
+      }
+    };
+
+    // ===========================================
+    // TIMING CACHE
+    // ===========================================
+    const timingCache = {};
+
+    async function loadTiming(nodeId) {
+      if (timingCache[nodeId]) {
+        return timingCache[nodeId];
+      }
+
+      try {
+        const response = await fetch(`timing/${nodeId}.json`);
+        if (!response.ok) {
+          console.warn(`No timing file for ${nodeId}, will use fallback`);
+          return null;
+        }
+        const data = await response.json();
+        timingCache[nodeId] = data;
+        return data;
+      } catch (e) {
+        console.warn(`Failed to load timing for ${nodeId}:`, e);
+        return null;
+      }
+    }
+
+    // ===========================================
+    // AUDIO ENGINE
+    // ===========================================
+
+    const audioEngine = {
+      narration: null,
+      music: null,
+      sfx: [],
+      sfxTimeouts: [],
+      volumes: {
+        narration: 1,
+        music: 0.4,
+        sfx: 0.7
+      },
+      currentMusic: null,
+
+      stopAll() {
+        if (this.narration) {
+          this.narration.pause();
+          this.narration.currentTime = 0;
+          this.narration.ontimeupdate = null;
+          this.narration.onended = null;
+        }
+        this.sfx.forEach(s => {
+          s.pause();
+          s.currentTime = 0;
+        });
+        this.sfx = [];
+        this.sfxTimeouts.forEach(t => clearTimeout(t));
+        this.sfxTimeouts = [];
+      },
+
+      loadNode(node) {
+        this.stopAll();
+
+        if (!node.audio) return Promise.resolve();
+
+        const promises = [];
+
+        // Narration
+        if (node.audio.narration) {
+          this.narration = new Audio(node.audio.narration);
+          this.narration.volume = this.volumes.narration;
+          promises.push(
+            this.narration.play().catch(() => {
+              console.log('Narration audio not found:', node.audio.narration);
+            })
+          );
+        }
+
+        // Music (crossfade if different track)
+        if (node.audio.music && node.audio.music !== this.currentMusic) {
+          if (this.music) {
+            const oldMusic = this.music;
+            const fadeOut = setInterval(() => {
+              if (oldMusic.volume > 0.05) {
+                oldMusic.volume -= 0.05;
+              } else {
+                oldMusic.pause();
+                clearInterval(fadeOut);
+              }
+            }, 50);
+          }
+
+          this.music = new Audio(node.audio.music);
+          this.music.loop = true;
+          this.music.volume = 0;
+          this.currentMusic = node.audio.music;
+
+          const fadeIn = setInterval(() => {
+            if (this.music.volume < this.volumes.music - 0.05) {
+              this.music.volume += 0.05;
+            } else {
+              this.music.volume = this.volumes.music;
+              clearInterval(fadeIn);
+            }
+          }, 50);
+
+          promises.push(
+            this.music.play().catch(() => {
+              console.log('Music audio not found:', node.audio.music);
+            })
+          );
+        }
+
+        // SFX (scheduled)
+        if (node.audio.sfx) {
+          node.audio.sfx.forEach(sfxDef => {
+            const timeout = setTimeout(() => {
+              const sfx = new Audio(sfxDef.file);
+              sfx.volume = (sfxDef.volume || 1) * this.volumes.sfx;
+              if (sfxDef.loop) sfx.loop = true;
+              sfx.play().catch(() => {
+                console.log('SFX audio not found:', sfxDef.file);
+              });
+              this.sfx.push(sfx);
+            }, (sfxDef.at || 0) * 1000);
+            this.sfxTimeouts.push(timeout);
+          });
+        }
+
+        return Promise.all(promises);
+      },
+
+      play() {
+        if (this.narration) this.narration.play();
+        if (this.music) this.music.play();
+      },
+
+      pause() {
+        if (this.narration) this.narration.pause();
+      },
+
+      setVolume(type, value) {
+        this.volumes[type] = parseFloat(value);
+        if (type === 'narration' && this.narration) {
+          this.narration.volume = this.volumes.narration;
+        } else if (type === 'music' && this.music) {
+          this.music.volume = this.volumes.music;
+        } else if (type === 'sfx') {
+          this.sfx.forEach(s => {
+            s.volume = this.volumes.sfx;
+          });
+        }
+      },
+
+      getDuration() {
+        return this.narration ? this.narration.duration : 0;
+      },
+
+      getCurrentTime() {
+        return this.narration ? this.narration.currentTime : 0;
+      },
+
+      onTimeUpdate(callback) {
+        if (this.narration) {
+          this.narration.ontimeupdate = callback;
+        }
+      },
+
+      onEnded(callback) {
+        if (this.narration) {
+          this.narration.onended = callback;
+        }
+      }
+    };
+
+    // ===========================================
+    // GAME STATE
+    // ===========================================
+
+    let currentNodeId = null;
+    let isPlaying = false;
+    let readMode = false;
+    let wordElements = [];
+    let wordTimings = [];
+
+    // ===========================================
+    // RENDERING
+    // ===========================================
+
+    async function renderNode(nodeId) {
+      const node = story.nodes[nodeId];
+      if (!node) {
+        console.error('Node not found:', nodeId);
+        return;
+      }
+
+      currentNodeId = nodeId;
+
+      // Load timing data from JSON file
+      const timingData = await loadTiming(nodeId);
+
+      // Render text with word spans
+      const storyTextEl = document.getElementById('storyText');
+      
+      // Use words from timing file if available (ensures exact match)
+      // Otherwise fall back to splitting the text property
+      let words;
+      if (timingData && timingData.words) {
+        words = timingData.words;
+        wordTimings = timingData.timing;
+      } else {
+        words = node.text.split(/\s+/);
+        wordTimings = null;
+      }
+
+      wordElements = [];
+      storyTextEl.innerHTML = words.map((word, i) => {
+        return `<span class="word" data-index="${i}">${word}</span>`;
+      }).join(' ');
+
+      wordElements = Array.from(storyTextEl.querySelectorAll('.word'));
+
+      // Render choices (hidden initially)
+      const choicesEl = document.getElementById('choices');
+      choicesEl.classList.remove('visible');
+
+      if (node.isEnding) {
+        choicesEl.innerHTML = `
+          <div style="text-align: center; padding: 20px 0;">
+            <div style="font-size: 0.9rem; color: #6a7a9a; margin-bottom: 10px;">THE END</div>
+            <div style="font-size: 1.3rem; color: #a8b5d1;">${node.endingText}</div>
+          </div>
+          <button class="choice-btn" onclick="restartStory()" style="text-align: center;">
+            ↺ Play Again
+          </button>
+        `;
+      } else if (node.choices) {
+        choicesEl.innerHTML = node.choices.map(choice => `
+          <button class="choice-btn" onclick="makeChoice('${choice.goto}')">
+            ${choice.text}
+          </button>
+        `).join('');
+      }
+
+      // Handle audio
+      if (readMode) {
+        wordElements.forEach(el => el.classList.add('spoken'));
+        showChoices();
+      } else {
+        audioEngine.loadNode(node).then(() => {
+          setupAudioSync();
+          isPlaying = true;
+          updatePlayButton();
+        });
+      }
+    }
+
+    function setupAudioSync() {
+      const node = story.nodes[currentNodeId];
+      if (!node || !audioEngine.narration) return;
+
+      const setupTiming = () => {
+        const duration = audioEngine.getDuration();
+        if (!duration || isNaN(duration)) {
+          setTimeout(setupTiming, 100);
+          return;
+        }
+
+        // If no timing data loaded, generate fallback (evenly distributed)
+        if (!wordTimings) {
+          const wordCount = wordElements.length;
+          wordTimings = [];
+          for (let i = 0; i < wordCount; i++) {
+            const start = (i / wordCount) * duration;
+            const end = ((i + 1) / wordCount) * duration;
+            wordTimings.push([start, end]);
+          }
+          console.log(`Using fallback timing for ${currentNodeId} (${wordCount} words, ${duration.toFixed(1)}s)`);
+        }
+
+        audioEngine.onTimeUpdate(() => {
+          const currentTime = audioEngine.getCurrentTime();
+          updateWordHighlighting(currentTime);
+        });
+
+        audioEngine.onEnded(() => {
+          isPlaying = false;
+          updatePlayButton();
+          wordElements.forEach(el => el.classList.add('spoken'));
+          showChoices();
+        });
+      };
+
+      setupTiming();
+    }
+
+    function updateWordHighlighting(currentTime) {
+      if (!wordTimings) return;
+
+      wordElements.forEach((el, i) => {
+        const timing = wordTimings[i];
+        if (!timing) return;
+        
+        const [start, end] = timing;
+        el.classList.remove('current');
+
+        if (currentTime >= end) {
+          el.classList.add('spoken');
+        } else if (currentTime >= start && currentTime < end) {
+          el.classList.add('spoken', 'current');
+        } else {
+          el.classList.remove('spoken');
+        }
+      });
+    }
+
+    function showChoices() {
+      const choicesEl = document.getElementById('choices');
+      choicesEl.classList.add('visible');
+    }
+
+    // ===========================================
+    // CONTROLS
+    // ===========================================
+
+    function togglePlay() {
+      if (!audioEngine.narration) return;
+
+      if (isPlaying) {
+        audioEngine.pause();
+        isPlaying = false;
+      } else {
+        audioEngine.play();
+        isPlaying = true;
+      }
+      updatePlayButton();
+    }
+
+    function updatePlayButton() {
+      const btn = document.getElementById('playBtn');
+      if (isPlaying) {
+        btn.classList.add('playing');
+      } else {
+        btn.classList.remove('playing');
+      }
+    }
+
+    function updateVolume(type, value) {
+      audioEngine.setVolume(type, value);
+    }
+
+    function toggleReadMode() {
+      readMode = document.getElementById('readMode').checked;
+      if (readMode && currentNodeId) {
+        wordElements.forEach(el => el.classList.add('spoken'));
+        audioEngine.stopAll();
+        isPlaying = false;
+        updatePlayButton();
+        showChoices();
+      }
+    }
+
+    function makeChoice(nodeId) {
+      renderNode(nodeId);
+    }
+
+    function restartStory() {
+      audioEngine.stopAll();
+      if (audioEngine.music) {
+        audioEngine.music.pause();
+        audioEngine.music = null;
+        audioEngine.currentMusic = null;
+      }
+      isPlaying = false;
+      updatePlayButton();
+      renderNode(story.startNode);
+    }
+
+    // ===========================================
+    // INIT
+    // ===========================================
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('storyTitle').textContent = story.title;
+      renderNode(story.startNode);
+    });
+  </script>
+</body>
+</html>
